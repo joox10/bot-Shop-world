@@ -12,7 +12,6 @@ const giveawayDB = new Database("/Json-db/Bots/giveawayDB.json")
 const systemDB = new Database("/Json-db/Bots/systemDB.json")
 const shortcutDB = new Database("/Json-db/Others/shortcutDB.json")
 const protectDB = new Database("/Json-db/Bots/protectDB.json")
-const db = new Database("/Json-db/Bots/BroadcastDB")
 const logsDB = new Database("/Json-db/Bots/logsDB.json")
 const nadekoDB = new Database("/Json-db/Bots/nadekoDB.json")
 const one4allDB = new Database("/Json-db/Bots/one4allDB.json")
@@ -26,7 +25,7 @@ const { readdirSync } = require("fs");
   const { Routes } = require('discord-api-types/v10');
 const { token, clientId,owner, prefix } = require('./config.js');
   theowner = owner;
-  const client27 = new Client({intents: 131071 , shards: "auto", partials: [Partials.Message, Partials.Channel, Partials.GuildMember,]});
+const client27 = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] , shards: "auto", partials: [Partials.Message, Partials.Channel, Partials.GuildMember,]});
   client27.commands = new Collection();
   require(`./handlers/events`)(client27);
   client27.events = new Collection();
@@ -75,9 +74,7 @@ const { token, clientId,owner, prefix } = require('./config.js');
     require(`./handlers/events`)(client27)
     require(`./handlers/addToken`)(client27)
     require(`./handlers/info`)(client27)
-    require(`./handlers/sendBroadcast`)(client27)
-    require(`./handlers/setBroadcastMessage`)(client27)
-
+ 
   const folderPath = path.join(__dirname, 'slashcommand27');
   client27.one4allSlashCommands = new Collection();
   const one4allSlashCommands = [];
@@ -123,185 +120,58 @@ require("./handlers/events")(client27)
 	}
 	}
 
-
-
-client27.on("ready", () => {
-  console.log(`Logged in as ${client27.user.tag}`);
-});
-
-const AR_EMBED = (client) => new EmbedBuilder()
-  .setColor("#2ecc71")
-  .setTitle("🤖 بوت Joox - المعلومات والدعم")
-  .setDescription(`
-🌟 أهلاً بك مع **بوت Joox**!  
-تم تصميمه لتقديم أدوات إدارية، ترفيهية، وخدمات مميزة لسيرفرك.
-
----
-
-🔹 **إرسال اقتراح / طلب**  
-إذا عندك فكرة أو ميزة جديدة، اكتبها وسنقوم بتنفيذها بأقرب وقت ممكن ✅
-
-🔹 **إضافة مالك البوت للتواصل**  
-يمكنك التواصل مباشرة مع مالك البوت إذا حابب:  
-> 👤 [مالك البوت](https://discordapp.com/users/1254423369164525690)
-
-🔹 **دعوة البوت لسيرفرك**  
-[➕ اضغط هنا لدعوة البوت](https://discord.com/oauth2/authorize?client_id=1303646938557579295&scope=bot&permissions=8)
-
-🔹 **سيرفر الدعم الفني**  
-[🔗 انضم لسيرفر الدعم](https://discord.gg/vZhRwJbwnh)
-`)
-  .setFooter({ text: "Joox Bot © 2025", iconURL: client.user.displayAvatarURL() });
-
-const EN_EMBED = (client) => new EmbedBuilder()
-  .setColor("#3498db")
-  .setTitle("🤖 Joox Bot - Info & Support")
-  .setDescription(`
-🌟 Welcome to **Joox Bot**!  
-Built to provide administrative, fun, and unique tools for your server.
-
----
-
-🔹 **Send Suggestion / Request**  
-Got an idea or feature? Share it and we’ll add it as soon as possible ✅
-
-🔹 **Contact Bot Owner**  
-You can directly add or message the owner if needed:  
-> 👤 [Bot Owner](https://discordapp.com/users/1254423369164525690)
-
-🔹 **Invite the Bot**  
-[➕ Click here to invite](https://discord.com/oauth2/authorize?client_id=1303646938557579295&scope=bot&permissions=8)
-
-🔹 **Support Server**  
-[🔗 Join Support Server](https://discord.gg/vZhRwJbwnh)
-`)
-  .setFooter({ text: "Joox Bot © 2025", iconURL: client.user.displayAvatarURL() });
-
-// ---------- عند منشن البوت بدون reply ----------
-client27.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-
-  // تجاهل أي رسالة reply
-  if (message.type === 19) return;
-
-  // تحقق من أن البوت هو الوحيد المذكور وليس @everyone أو @here
-  if (message.mentions.has(client27.user.id) && !message.mentions.everyone) {
-    try {
-      // أضف إيموجي على الرسالة بدل الرد
-      await message.react("📩");
-
-      // زر اللغة الافتراضية عربي
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("switch_to_en")
-          .setLabel("🇺🇸 English")
-          .setStyle(ButtonStyle.Primary)
-      );
-
-      // إرسال رسالة خاصة للمستخدم بدون أي reply
-      await message.author.send({ embeds: [AR_EMBED(client27)], components: [row] });
-    } catch {
-      console.log("لا يمكن إرسال رسالة خاصة للمستخدم");
-    }
-  }
-});
-
-// ---------- تفاعل الأزرار ----------
-client27.on("interactionCreate", async (interaction) => {
-  if (!interaction.isButton()) return;
-
-  if (interaction.customId === "switch_to_en") {
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("switch_to_ar")
-        .setLabel("🇸🇦 عربي")
-        .setStyle(ButtonStyle.Success)
-    );
-    await interaction.update({ embeds: [EN_EMBED(client27)], components: [row] });
-  }
-
-  if (interaction.customId === "switch_to_ar") {
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("switch_to_en")
-        .setLabel("🇺🇸 English")
-        .setStyle(ButtonStyle.Primary)
-    );
-    await interaction.update({ embeds: [AR_EMBED(client27)], components: [row] });
-  }
-});
-
-
-
-
   
-
   client27.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
     const userId = message.author.id;
     const guild = message.guild;
 
-    // 🔹 إلغاء AFK عند إرسال رسالة (ما عدا الأمر !afk)
-    if (afkDB.has(userId) && !message.content.toLowerCase().startsWith("!afk")) {
+    // 🔹 إلغاء AFK عند إرسال رسالة
+    if (afkDB.has(userId)) {
         afkDB.delete(userId);
-        try {
-            await message.reply(`✅ **مرحبًا بعودتك ${message.author}, تم إلغاء وضع AFK!**`);
-        } catch {}
+        message.reply(`✅ **مرحبًا بعودتك ${message.author}, تم إلغاء وضع AFK!**`);
     }
 
-    // 🔹 عند منشن شخص في وضع AFK، يظهر السبب + المدة داخل Embed
+    // 🔹 عند منشن شخص في وضع AFK، يظهر السبب داخل Embed بلون أسود وصورة السيرفر
     if (message.mentions.members.size > 0) {
-        const afkMembers = [];
-
         message.mentions.members.forEach(member => {
             if (afkDB.has(member.id)) {
-                const data = afkDB.get(member.id);
-                const duration = Math.floor((Date.now() - data.timestamp) / 1000);
-                const minutes = Math.floor(duration / 60);
-                const seconds = duration % 60;
+                const reason = afkDB.get(member.id).reason;
+                const mentionEmbed = new EmbedBuilder()
+                    .setColor("#000000")
+                    .setTitle("🚧 هذا العضو في وضع AFK")
+                    .setDescription(`**السبب:** ${reason}`)
+                    .setThumbnail(guild.iconURL({ dynamic: true }));
 
-                afkMembers.push(`👤 ${member.user.tag} → **${data.reason}**\n⏰ منذ ${minutes} دقيقة و ${seconds} ثانية`);
+                message.reply({ embeds: [mentionEmbed] });
             }
         });
-
-        if (afkMembers.length > 0) {
-            const mentionEmbed = new EmbedBuilder()
-                .setColor("#000000")
-                .setTitle("🚧 الأعضاء في وضع AFK")
-                .setDescription(afkMembers.join("\n\n"));
-
-            if (guild) {
-                mentionEmbed.setThumbnail(guild.iconURL({ dynamic: true }));
-            }
-
-            try {
-                await message.reply({ embeds: [mentionEmbed] });
-            } catch {}
-        }
     }
 
-    // 🔹 عند كتابة !afk أو !AFK السبب، يتم تفعيل أو تحديث AFK
-    if (message.content.toLowerCase().startsWith("!afk")) {
+    // 🔹 عند كتابة !afk السبب، يتم تفعيل AFK
+    if (message.content.toLowerCase().startsWith(".afk")) {
         const args = message.content.split(" ").slice(1);
         const reason = args.join(" ") || "غير محدد";
 
-        afkDB.set(userId, { reason, timestamp: Date.now() });
+        afkDB.set(userId, { reason: reason, timestamp: Date.now() });
 
         const afkEmbed = new EmbedBuilder()
-            .setColor("#000000")
-            .setTitle("☕ تم تفعيل/تحديث وضع AFK")
-            .setDescription(`**السبب:** ${reason}`);
+            .setColor("#000000") // لون أسود
+            .setTitle("☕ تم تفعيل وضع AFK")
+            .setDescription(`**السبب:** ${reason}`)
+            .setThumbnail(guild.iconURL({ dynamic: true }));
 
-        if (guild) {
-            afkEmbed.setThumbnail(guild.iconURL({ dynamic: true }));
-        }
-
-        try {
-            await message.reply({ embeds: [afkEmbed] });
-        } catch {}
+        message.reply({ embeds: [afkEmbed] });
     }
 });
+
+
+  client27.on("messageCreate" , async(message) => {
+    if(message.content == "test"){
+      message.reply(`works fine`)
+    }
+  })
 
   client27.on("interactionCreate" , async(interaction) => {
     if (interaction.isChatInputCommand()) {
@@ -965,48 +835,6 @@ client27.on('messageCreate', async message => {
 
         Log?.send({ embeds: [logEmbed] });
         ticketDB.delete(`TICKET-PANEL_${message.channel.id}`);
-    }
-});
-client27.on('messageCreate', async message => {
-    if (message.author.bot || !message.guild) return;
-
-    // استدعاء اختصار الرول من DB
-    const data = shortcutDB.get(`role_cmd_${message.guild.id}`);
-    if (!data) return;
-
-    const { shortcut, action } = data;
-
-    if (!message.content.startsWith(shortcut)) return;
-
-    // تفكيك الرسالة لاستخراج العضو والرتبة
-    const args = message.content.split(/\s+/);
-
-    const userId = args[1]?.replace(/[<@!>]/g, '');
-    const roleId = args[2]?.replace(/[<@&>]/g, '');
-
-    if (!userId || !roleId) {
-        return message.reply("⚠️ الصيغة غير صحيحة. مثال: `!shortcut @user @role`");
-    }
-
-    const member = await message.guild.members.fetch(userId).catch(() => null);
-    const role = message.guild.roles.cache.get(roleId);
-
-    if (!member || !role) {
-        return message.reply("❌ العضو أو الرتبة غير موجودة");
-    }
-
-    if (role.position >= message.guild.members.me.roles.highest.position) {
-        return message.reply("🚫 لا أستطيع التعامل مع هذه الرتبة");
-    }
-
-    if (action === "give") {
-        await member.roles.add(role);
-        return message.reply(`✅ تم إعطاء رتبة **${role.name}** لـ ${member.user.tag}`);
-    }
-
-    if (action === "remove") {
-        await member.roles.remove(role);
-        return message.reply(`✅ تم سحب رتبة **${role.name}** من ${member.user.tag}`);
     }
 });
 
@@ -2358,7 +2186,7 @@ client27.on("guildMemberAdd" , async(member) => {
   })
 })
 
-  client27.on("messageCreate" ,  async(message) => {
+client27.on("messageCreate" ,  async(message) => {
     if(message.author.bot) return;
     const autoReplys = one4allDB.get(`replys_${message.guild.id}`);
     if(!autoReplys) return;
@@ -2403,7 +2231,6 @@ client27.on("guildMemberAdd" , async(member) => {
         )
 
         const btns3 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
             new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
             new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
             new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2446,7 +2273,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
        new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
        new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2487,7 +2313,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2530,7 +2355,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2586,7 +2410,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2633,7 +2456,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
        new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
        new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2674,7 +2496,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2718,7 +2539,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2758,7 +2578,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2800,50 +2619,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
-        new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
-        new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
-        new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
-        new ButtonBuilder().setCustomId('help_autorole').setLabel('رتب تلقائية').setStyle(ButtonStyle.Secondary).setEmoji('⚡'),
-    )
-
-    await interaction.update({embeds : [embed] , components : [btns1 , btns2 , btns3]});
-    }else 
-            /**
-     * @desc : BROADCAST COMMANDS
-    */
-    if(interaction.customId === "help_broadcast"){
-      const embed = new EmbedBuilder()
-      .setAuthor({name : interaction.guild.name , iconURL : interaction.guild.iconURL({dynamic : true})})
-      .setTitle('قائمة اوامر البوت')
-      .addFields(
-        {name : `\`/send-broadcast-panel\`` , value : `ارسال بانل التحكم في البرودكاست`},
-        {name : `\`${prefix}obc\`` , value : `لارسال رسالة للأعضاء الأونلاين`},
-        {name : `\`${prefix}bc\`` , value : `ارسال رسالة للكل`},
-        {name : `\`/remove-token\`` , value : `ازالة توكن محدد من بوتات البرودكاست`},
-        {name : `\`/remove-all-tokens\`` , value : `ازالة جميع توكنات البرودكاست`},
-      )
-      .setTimestamp()
-      .setFooter({text : `Requested By ${interaction.user.username}` , iconURL : interaction.user.displayAvatarURL({dynamic : true})})
-      .setColor('DarkButNotBlack');
-      const btns1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_tax').setLabel('ضريبة').setStyle(ButtonStyle.Secondary).setEmoji('💰'),
-        new ButtonBuilder().setCustomId('help_autoline').setLabel('خط تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('🤖'),
-        new ButtonBuilder().setCustomId('help_suggestion').setLabel('اقتراحات').setStyle(ButtonStyle.Secondary).setEmoji('💡'),
-        new ButtonBuilder().setCustomId('help_feedback').setLabel('اراء').setStyle(ButtonStyle.Secondary).setEmoji('💭'),
-        new ButtonBuilder().setCustomId('help_system').setLabel('اوامر اداره').setStyle(ButtonStyle.Secondary).setEmoji('⚙️'),
-    )
-
-    const btns2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_ticket').setLabel('تكت').setStyle(ButtonStyle.Secondary).setEmoji('🎫'),
-        new ButtonBuilder().setCustomId('help_giveaway').setLabel('جيف اوي').setStyle(ButtonStyle.Secondary).setEmoji('🎁'),
-        new ButtonBuilder().setCustomId('help_protection').setLabel('حماية').setStyle(ButtonStyle.Secondary).setEmoji('🛡️'),
-        new ButtonBuilder().setCustomId('help_logs').setLabel('لوج').setStyle(ButtonStyle.Secondary).setEmoji('📜'),
-        new ButtonBuilder().setCustomId('help_apply').setLabel('تقديمات').setStyle(ButtonStyle.Secondary).setEmoji('📝'),
-    )
-
-    const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢').setDisabled(true),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2884,7 +2659,6 @@ client27.on("guildMemberAdd" , async(member) => {
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳').setDisabled(true),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
@@ -2908,7 +2682,7 @@ if(interaction.customId === "help_public"){
         { name: `\`/banner\``, value: `لرؤية بانرك أو بانر شخص آخر` },
         { name: `\`/nickname\``, value: `إعطاء اسم مستعار لشخص أو إزالته` }, 
         { name: `\`/uploadimage\``, value: `رفع صورة والحصول على رابط دائم لها` },
-        { name: `\`!afk\``, value: `لتفعيل وضع الخمول AFK` }
+        { name: `\`.afk\``, value: `لتفعيل وضع الخمول AFK` }
     )    
       .setTimestamp()
       .setFooter({text : `Requested By ${interaction.user.username}` , iconURL : interaction.user.displayAvatarURL({dynamic : true})})
@@ -2930,7 +2704,6 @@ if(interaction.customId === "help_public"){
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻').setDisabled(true), 
@@ -2971,7 +2744,6 @@ if(interaction.customId === "help_public"){
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎'),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'), 
@@ -3012,7 +2784,6 @@ if(interaction.customId === "help_public"){
     )
 
     const btns3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('help_broadcast').setLabel('برودكاست').setStyle(ButtonStyle.Secondary).setEmoji('📢'),
         new ButtonBuilder().setCustomId('help_nadeko').setLabel('ناديكو').setStyle(ButtonStyle.Secondary).setEmoji('⏳'),
         new ButtonBuilder().setCustomId('help_autoreply').setLabel('رد تلقائي').setStyle(ButtonStyle.Secondary).setEmoji('💎').setDisabled(true),
         new ButtonBuilder().setCustomId('help_public').setLabel('اوامر عامه ').setStyle(ButtonStyle.Secondary).setEmoji('💻'),
