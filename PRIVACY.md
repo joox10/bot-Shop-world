@@ -27,4 +27,4 @@ Users and server administrators have control over their data:
 * **Data Deletion:** Since we do not store private user content off-platform, there is no personal data stored to request for deletion.
 
 ### 5. Contact
-If you have any questions or concerns regarding this privacy policy, please open an issue in our GitHub Repository: https://github.com/adwees/bot-Shop-world
+If you have any questions or concerns regarding this privacy policy, please open an issue in our GitHub Repository: https://github.com/joox10/bot-Shop-world
