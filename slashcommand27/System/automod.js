@@ -34,7 +34,7 @@ module.exports = {
                              .setRequired(true)
                    )
         )
-        // 5. [جديد] منع كلمة معينة في بروفايل العضو (الاسم والحالة)
+        // 5. منع كلمة معينة في بروفايل العضو (الاسم والحالة)
         .addSubcommand(command => 
             command.setName('profile-words')
                    .setDescription('حظر كلمات معينة من الظهور في أسماء أو حسابات الأعضاء')
@@ -44,7 +44,7 @@ module.exports = {
                              .setRequired(true)
                    )
         )
-        // 6. [جديد] تنظيف وحذف القواعد لتجنب امتلاء السيرفر والحد الأقصى
+        // 6. تنظيف وحذف القواعد لتجنب امتلاء السيرفر والحد الأقصى
         .addSubcommand(command => 
             command.setName('clear')
                    .setDescription('حذف جميع قواعد الحماية التلقائية التي أنشأها البوت')
@@ -64,11 +64,42 @@ module.exports = {
 
         const botClientId = interaction.client.user.id;
 
+        // 🌟 دالة مساعدة ذكية لإنشاء القواعد والتعامل مع الأخطاء بدون رسائل وهمية
+        async function safeCreateRule(ruleOptions, successText) {
+            try {
+                const rule = await guild.autoModerationRules.create(ruleOptions);
+                
+                // في حال النجاح الحقيقي فقط، يرسل إمبيد النجاح
+                const successEmbed = new EmbedBuilder()
+                    .setColor("Blue")
+                    .setDescription(successText);
+                    
+                await interaction.editReply({ content: '', embeds: [successEmbed] });
+                return rule;
+            } catch (err) {
+                console.error("🔴 AutoMod Creation Error:", err);
+                
+                let errorMsg = `❌ حدث خطأ غير متوقع أثناء محاولة إنشاء القاعدة: \`${err.message}\``;
+                
+                // كود 30046 في ديسكورد يعني الوصول للحد الأقصى المسموح به من القواعد (Max AutoMod Rules Reached)
+                if (err.code === 30046 || err.message.toLowerCase().includes('limit') || err.message.toLowerCase().includes('maximum')) {
+                    errorMsg = `⚠️ **فشل تفعيل الحماية! لقد تم الوصول للحد الأقصى لقواعد الـ AutoMod.**\n\n` +
+                               `سيرفرك وصل للعدد الأقصى المسموح به من ديسكورد لهذا النوع من القواعد.\n\n` +
+                               `💡 **كيف تحل المشكلة؟**\n` +
+                               `• اكتب أمر \`/automod clear\` لحذف القواعد القديمة التي صنعها هذا البوت للتنظيف.\n` +
+                               `• أو اذهب يدويًا إلى **إعدادات السيرفر ➜ الحماية التلقائية (Safety Setup)** واحذف أي قواعد قديمة غير مستخدمة لتوفير مساحة للبوت.`;
+                }
+
+                await interaction.editReply({ content: errorMsg, embeds: [] });
+                return null;
+            }
+        }
+
         switch (sub) {
             case 'flagged-words': {
                 await interaction.reply({ content: '⏳ جاري تفعيل تصفية الكلمات البذيئة...' });
                 
-                const rule = await guild.autoModerationRules.create({
+                await safeCreateRule({
                     name: 'Block Flagged Words - AutoMod',
                     creatorId: botClientId,
                     enabled: true,
@@ -77,18 +108,9 @@ module.exports = {
                     triggerMetadata: {
                         presets: [1, 2, 3] 
                     },
-                    actions: [{ type: 1, metadata: { customMessage: 'تم حظر رسالتك تلقائياً.' } }]
-                }).catch(async err => {
-                    console.error(err);
-                    return await interaction.editReply({ content: `❌ حدث خطأ: \`${err.message}\`` });
-                });
-
-                if (rule) {
-                    const embed = new EmbedBuilder()
-                        .setColor("Blue")
-                        .setDescription('✅ تم تفعيل حظر الكلمات البذيئة (Flagged Words) بنجاح!');
-                    await interaction.editReply({ content: '', embeds: [embed] });
-                }
+                    actions: [{ type: 1, metadata: { customMessage: 'تم حظر رسالتك تلقائياً لاحتوائها على كلمات غير لائقة.' } }]
+                }, '✅ تم تفعيل حظر الكلمات البذيئة (Flagged Words) بنجاح!');
+                
                 break;
             }
 
@@ -96,7 +118,7 @@ module.exports = {
                 const word = options.getString('word');
                 await interaction.reply({ content: `⏳ جاري حظر الكلمة [ ${word} ]...` });
                 
-                const rule2 = await guild.autoModerationRules.create({
+                await safeCreateRule({
                     name: `Prevent ${word} Word - AutoMod`,
                     creatorId: botClientId,
                     enabled: true,
@@ -106,24 +128,15 @@ module.exports = {
                         keywordFilter: [word]
                     },
                     actions: [{ type: 1, metadata: { customMessage: `تم منع إرسال الكلمة المحظورة: ${word}` } }]
-                }).catch(async err => {
-                    console.error(err);
-                    return await interaction.editReply({ content: `❌ حدث خطأ: \`${err.message}\`` });
-                });
-
-                if (rule2) {
-                    const embed2 = new EmbedBuilder()
-                        .setColor('Blue')
-                        .setDescription(`✅ تم بنجاح حظر الكلمة **${word}** من الشات.`);
-                    await interaction.editReply({ content: '', embeds: [embed2] });
-                }
+                }, `✅ تم بنجاح حظر الكلمة **${word}** من الشات.`);
+                
                 break;
             }
 
             case 'spam-msg': {
                 await interaction.reply({ content: '⏳ جاري تفعيل نظام منع السبام...' });
                 
-                const rule3 = await guild.autoModerationRules.create({
+                await safeCreateRule({
                     name: 'Prevent Spam Messages - AutoMod',
                     creatorId: botClientId,
                     enabled: true,
@@ -131,17 +144,8 @@ module.exports = {
                     triggerType: 3, // SPAM
                     triggerMetadata: {},
                     actions: [{ type: 1, metadata: { customMessage: 'الرجاء التوقف عن التكرار والسبام.' } }]
-                }).catch(async err => {
-                    console.error(err);
-                    return await interaction.editReply({ content: `❌ حدث خطأ: \`${err.message}\`` });
-                });
-
-                if (rule3) {
-                    const embed3 = new EmbedBuilder()
-                        .setColor("Blue")
-                        .setDescription('✅ تم تفعيل نظام منع الرسائل العشوائية (Spam) بنجاح!');
-                    await interaction.editReply({ content: '', embeds: [embed3] });
-                }
+                }, '✅ تم تفعيل نظام منع الرسائل العشوائية (Spam) بنجاح!');
+                
                 break;
             }
 
@@ -149,7 +153,7 @@ module.exports = {
                 const number = options.getInteger('number');
                 await interaction.reply({ content: `⏳ جاري تفعيل مانع سبام المنشن بالحد الأقصى (${number})...` });
                 
-                const rule4 = await guild.autoModerationRules.create({
+                await safeCreateRule({
                     name: 'Prevent Mention Spam - AutoMod',
                     creatorId: botClientId,
                     enabled: true,
@@ -159,57 +163,37 @@ module.exports = {
                         mentionTotalLimit: number
                     },
                     actions: [{ type: 1, metadata: { customMessage: `رسالتك تحتوي على أكثر من ${number} منشن.` } }]
-                }).catch(async err => {
-                    console.error(err);
-                    return await interaction.editReply({ content: `❌ حدث خطأ: \`${err.message}\`` });
-                });
-
-                if (rule4) {
-                    const embed4 = new EmbedBuilder()
-                        .setColor("Blue")
-                        .setDescription(`✅ تم تفعيل مانع منشن سبام! الحد الأقصى للمنشن: **${number}**.`);
-                    await interaction.editReply({ content: '', embeds: [embed4] });
-                }
+                }, `✅ تم تفعيل مانع منشن سبام! الحد الأقصى للمنشن المسموح به: **${number}**.`);
+                
                 break;
             }
 
-            // 🌟 ميزة منع الكلمة في الملف الشخصي (الاسم والبروفايل)
             case 'profile-words': {
                 const word = options.getString('word');
                 await interaction.reply({ content: `⏳ جاري حظر الكلمة [ ${word} ] من ملفات الأعضاء...` });
 
-                const rule5 = await guild.autoModerationRules.create({
+                await safeCreateRule({
                     name: `Block Profile Word: ${word}`,
                     creatorId: botClientId,
                     enabled: true,
-                    eventType: 2, // MEMBER_PROFILE_UPDATE (تحديث بروفايل العضو)
-                    triggerType: 6, // MEMBER_PROFILE (نوع التريجر لملف العضو)
+                    eventType: 2, // MEMBER_PROFILE_UPDATE
+                    triggerType: 6, // MEMBER_PROFILE
                     triggerMetadata: {
                         keywordFilter: [word]
                     },
                     actions: [
                         {
-                            type: 1, // يمنع العضو من التفاعل أو يمنع التحديث
+                            type: 1,
                             metadata: {
                                 customMessage: `تم حجب حسابك لاحتوائه على كلمة ممنوعة: ${word}`
                             }
                         }
                     ]
-                }).catch(async err => {
-                    console.error(err);
-                    return await interaction.editReply({ content: `❌ حدث خطأ: \`${err.message}\`` });
-                });
-
-                if (rule5) {
-                    const embed5 = new EmbedBuilder()
-                        .setColor("Blue")
-                        .setDescription(`✅ تم تفعيل حظر الكلمة **${word}** في أسماء وحسابات الأعضاء بنجاح!`);
-                    await interaction.editReply({ content: '', embeds: [embed5] });
-                }
+                }, `✅ تم تفعيل حظر الكلمة **${word}** في أسماء وحسابات الأعضاء بنجاح!`);
+                
                 break;
             }
 
-            // 🧹 ميزة تنظيف وحذف جميع القواعد التي صنعها البوت
             case 'clear': {
                 await interaction.reply({ content: '⏳ جاري تنظيف وإلغاء تفعيل قواعد الـ AutoMod...' });
                 
@@ -223,15 +207,20 @@ module.exports = {
                     return await interaction.editReply({ content: '❌ لا توجد قواعد حماية نشطة تم إنشاؤها بواسطة هذا البوت حالياً.' });
                 }
 
-                for (const [id, rule] of botRules) {
-                    await rule.delete().catch(console.error);
-                }
+                try {
+                    for (const [id, rule] of botRules) {
+                        await rule.delete().catch(console.error);
+                    }
 
-                const embedClear = new EmbedBuilder()
-                    .setColor('Red')
-                    .setDescription(`🧹 تم بنجاح حذف وإيقاف جميع قواعد الحماية التلقائية (**${botRules.size}**) التي أنشأها البوت.`);
-                
-                await interaction.editReply({ content: '', embeds: [embedClear] });
+                    const embedClear = new EmbedBuilder()
+                        .setColor('Red')
+                        .setDescription(`🧹 تم بنجاح حذف وإيقاف جميع قواعد الحماية التلقائية (**${botRules.size}**) التي أنشأها البوت.`);
+                    
+                    await interaction.editReply({ content: '', embeds: [embedClear] });
+                } catch (err) {
+                    console.error(err);
+                    await interaction.editReply({ content: `❌ حدث خطأ أثناء حذف القواعد: \`${err.message}\`` });
+                }
                 break;
             }
         }
